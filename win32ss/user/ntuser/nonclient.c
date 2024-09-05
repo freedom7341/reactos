@@ -763,23 +763,39 @@ PCURICON_OBJECT FASTCALL NC_IconForWindow( PWND pWnd )
 BOOL
 UserDrawSysMenuButton(PWND pWnd, HDC hDC, LPRECT Rect, BOOL Down)
 {
-   PCURICON_OBJECT WindowIcon;
    BOOL Ret = FALSE;
 
-   if ((WindowIcon = NC_IconForWindow(pWnd)))
-   {
-      UserReferenceObject(WindowIcon);
+   RECT MenuRect, MenuRect2;
 
-      Ret = UserDrawIconEx(hDC,
-                           Rect->left + 2,
-                           Rect->top + 2,
-                           WindowIcon,
-                           UserGetSystemMetrics(SM_CXSMICON),
-                           UserGetSystemMetrics(SM_CYSMICON),
-                           0, NULL, DI_NORMAL);
+   MenuRect = *Rect;
 
-      UserDereferenceObject(WindowIcon);
-   }
+   MenuRect.right = MenuRect.left + UserGetSystemMetrics(SM_CYMENUSIZE);
+
+   // Draw background
+   FillRect(hDC, &MenuRect, (HBRUSH) (COLOR_3DFACE + 1));
+
+   // Draw the frame
+   FrameRect(hDC, &MenuRect, (HBRUSH) (COLOR_WINDOWFRAME + 1));
+
+      // Draw shadow
+   MenuRect2.top = MenuRect.top + (UserGetSystemMetrics(SM_CXMENUSIZE) / 2);
+   MenuRect2.left = MenuRect.left + 3; // adjust for mdi windows later (6)
+   MenuRect2.bottom = MenuRect2.top + 3;
+   MenuRect2.right = MenuRect.right - 3;
+
+   FillRect(hDC, &MenuRect2, (HBRUSH) (COLOR_3DSHADOW + 1));
+
+      // Draw "minus" inside
+   MenuRect2.top -= 1;
+   MenuRect2.left -= 1;
+   MenuRect2.bottom -= 1;
+   MenuRect2.right -= 1;
+
+   FillRect(hDC, &MenuRect2, (HBRUSH) (COLOR_3DHILIGHT + 1));
+
+   // Draw "minus" border
+   FrameRect(hDC, &MenuRect2, (HBRUSH) (COLOR_BTNTEXT + 1));
+
    return Ret;
 }
 
@@ -991,7 +1007,7 @@ VOID UserDrawCaptionBar(
       NtGdiPatBlt(hDC, CurrentRect.left, CurrentRect.bottom - 1, CurrentRect.right - CurrentRect.left, 1, PATCOPY);
       NtGdiPatBlt(hDC, CurrentRect.right - 1, CurrentRect.top, 1, CurrentRect.bottom - CurrentRect.top, PATCOPY);
 
-      RECTL_vInflateRect(&CurrentRect, -1, -1);
+      // RECTL_vInflateRect(&CurrentRect, -1, -1);
 #endif
    }
 
@@ -1033,7 +1049,6 @@ VOID UserDrawCaptionBar(
       /* Draw buttons */
       if (Style & WS_SYSMENU)
       {
-         UserDrawCaptionButton(pWnd, &TempRect, Style, ExStyle, hDC, FALSE, DFCS_CAPTIONCLOSE);
          if ((Style & (WS_MAXIMIZEBOX | WS_MINIMIZEBOX)) && !(ExStyle & WS_EX_TOOLWINDOW))
          {
             UserDrawCaptionButton(pWnd, &TempRect, Style, ExStyle, hDC, FALSE, DFCS_CAPTIONMIN);
@@ -1205,7 +1220,6 @@ NC_DoNCPaint(PWND pWnd, HDC hDC, INT Flags)
       /* Draw buttons */
       if (Style & WS_SYSMENU)
       {
-         UserDrawCaptionButton(pWnd, &TempRect, Style, ExStyle, hDC, FALSE, DFCS_CAPTIONCLOSE);
          if ((Style & (WS_MAXIMIZEBOX | WS_MINIMIZEBOX)) && !(ExStyle & WS_EX_TOOLWINDOW))
          {
             UserDrawCaptionButton(pWnd, &TempRect, Style, ExStyle, hDC, FALSE, DFCS_CAPTIONMIN);

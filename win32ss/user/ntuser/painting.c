@@ -2157,6 +2157,8 @@ UserDrawCaptionText(
 
    if (Ret)
    {  // Faster while in setup.
+      //IntGdiSetTextAlign (hDc, IntGdiGetTextAlign(hDc) & (~TA_LEFT) & (TA_CENTER));
+      IntGdiSetTextAlign (hDc, TA_CENTER & TA_BASELINE & TA_NOUPDATECP);
       UserExtTextOutW( hDc,
                       lpRc->left,
                       lpRc->top + (lpRc->bottom - lpRc->top - Size.cy) / 2, // DT_SINGLELINE && DT_VCENTER
@@ -2171,7 +2173,7 @@ UserDrawCaptionText(
                  Text->Buffer,
                  Text->Length/sizeof(WCHAR),
                 (RECTL *)&r,
-                 DT_END_ELLIPSIS|DT_SINGLELINE|DT_VCENTER|DT_NOPREFIX|DT_LEFT);
+                 DT_CENTER|DT_END_ELLIPSIS|DT_SINGLELINE|DT_VCENTER|DT_NOPREFIX);
    }
 
    IntGdiSetTextColor(hDc, OldTextColor);
@@ -2200,113 +2202,81 @@ BOOL UserDrawCaption(
    BOOL Ret = FALSE;
    HBRUSH hBgBrush, hOldBrush = NULL;
    RECTL Rect = *lpRc;
-   BOOL HasIcon;
+   BOOL HasSysMenu;
 
    RECTL_vMakeWellOrdered(lpRc);
 
-   /* Determine whether the icon needs to be displayed */
+   /* Determine whether the system menu needs to be displayed */
    if (!hIcon && pWnd != NULL)
    {
-     HasIcon = (uFlags & DC_ICON) && !(uFlags & DC_SMALLCAP) &&
+     HasSysMenu = (uFlags & DC_ICON) && !(uFlags & DC_SMALLCAP) &&
                (pWnd->style & WS_SYSMENU) && !(pWnd->ExStyle & WS_EX_TOOLWINDOW);
    }
    else
-     HasIcon = (hIcon != NULL);
+     HasSysMenu = (hIcon != NULL);
 
    // Draw the caption background
-   if((uFlags & DC_GRADIENT) && !(uFlags & DC_INBUTTON))
-   {
-      static GRADIENT_RECT gcap = {0, 1};
-      TRIVERTEX Vertices[2];
-      COLORREF Colors[2];
-
-      Colors[0] = IntGetSysColor((uFlags & DC_ACTIVE) ?
-            COLOR_ACTIVECAPTION : COLOR_INACTIVECAPTION);
-
-      Colors[1] = IntGetSysColor((uFlags & DC_ACTIVE) ?
-            COLOR_GRADIENTACTIVECAPTION : COLOR_GRADIENTINACTIVECAPTION);
-
-      Vertices[0].x = Rect.left;
-      Vertices[0].y = Rect.top;
-      Vertices[0].Red = (WORD)Colors[0]<<8;
-      Vertices[0].Green = (WORD)Colors[0] & 0xFF00;
-      Vertices[0].Blue = (WORD)(Colors[0]>>8) & 0xFF00;
-      Vertices[0].Alpha = 0;
-
-      Vertices[1].x = Rect.right;
-      Vertices[1].y = Rect.bottom;
-      Vertices[1].Red = (WORD)Colors[1]<<8;
-      Vertices[1].Green = (WORD)Colors[1] & 0xFF00;
-      Vertices[1].Blue = (WORD)(Colors[1]>>8) & 0xFF00;
-      Vertices[1].Alpha = 0;
-
-      if(!GreGradientFill(hDc, Vertices, 2, &gcap, 1, GRADIENT_FILL_RECT_H))
-      {
-         ERR("GreGradientFill() failed!\n");
-         goto cleanup;
-      }
-   }
+   if(uFlags & DC_INBUTTON)
+      hBgBrush = IntGetSysColorBrush(COLOR_3DFACE);
+   else if(uFlags & DC_ACTIVE)
+      hBgBrush = IntGetSysColorBrush(COLOR_ACTIVECAPTION);
    else
+      hBgBrush = IntGetSysColorBrush(COLOR_INACTIVECAPTION);
+
+   hOldBrush = NtGdiSelectBrush(hDc, hBgBrush);
+
+   if(!hOldBrush)
    {
-      if(uFlags & DC_INBUTTON)
-         hBgBrush = IntGetSysColorBrush(COLOR_3DFACE);
-      else if(uFlags & DC_ACTIVE)
-         hBgBrush = IntGetSysColorBrush(COLOR_ACTIVECAPTION);
-      else
-         hBgBrush = IntGetSysColorBrush(COLOR_INACTIVECAPTION);
-
-      hOldBrush = NtGdiSelectBrush(hDc, hBgBrush);
-
-      if(!hOldBrush)
-      {
-         ERR("NtGdiSelectBrush() failed!\n");
-         goto cleanup;
-      }
-
-      if(!NtGdiPatBlt(hDc, Rect.left, Rect.top,
-         Rect.right - Rect.left,
-         Rect.bottom - Rect.top,
-         PATCOPY))
-      {
-         ERR("NtGdiPatBlt() failed!\n");
-         goto cleanup;
-      }
+      ERR("NtGdiSelectBrush() failed!\n");
+      goto cleanup;
    }
 
-   /* Draw icon */
-   if (HasIcon)
+   if(!NtGdiPatBlt(hDc, Rect.left, Rect.top,
+      Rect.right - Rect.left,
+      Rect.bottom - Rect.top,
+      PATCOPY))
    {
-      PCURICON_OBJECT pIcon = NULL;
-
-      if (hIcon)
-      {
-          pIcon = UserGetCurIconObject(hIcon);
-      }
-      else if (pWnd)
-      {
-          pIcon = NC_IconForWindow(pWnd);
-          // FIXME: NC_IconForWindow should reference it for us */
-          if (pIcon)
-              UserReferenceObject(pIcon);
-      }
-
-      if (pIcon)
-      {
-         LONG cx = UserGetSystemMetrics(SM_CXSMICON);
-         LONG cy = UserGetSystemMetrics(SM_CYSMICON);
-         LONG x = Rect.left - cx/2 + 1 + (Rect.bottom - Rect.top)/2; // this is really what Window does
-         LONG y = (Rect.top + Rect.bottom - cy)/2; // center
-         UserDrawIconEx(hDc, x, y, pIcon, cx, cy, 0, NULL, DI_NORMAL);
-         UserDereferenceObject(pIcon);
-      }
-      else
-      {
-          HasIcon = FALSE;
-      }
+      ERR("NtGdiPatBlt() failed!\n");
+      goto cleanup;
    }
 
-   if (HasIcon)
+   /* Draw system menu */
+   if (HasSysMenu)
+   {
+      RECT MenuRect, MenuRect2;
+
+      MenuRect = Rect;
+
+      MenuRect.right = MenuRect.left + UserGetSystemMetrics(SM_CYMENUSIZE);
+
+      // Draw background
+      FillRect(hDc, &MenuRect, (HBRUSH) (COLOR_3DFACE + 1));
+
+      // Draw the frame
+      FrameRect(hDc, &MenuRect, (HBRUSH) (COLOR_WINDOWFRAME + 1));
+
+      // Draw shadow
+      MenuRect2.top = MenuRect.top + (UserGetSystemMetrics(SM_CXMENUSIZE) / 2);
+      MenuRect2.left = MenuRect.left + 3; // adjust for mdi windows later (6)
+      MenuRect2.bottom = MenuRect2.top + 3;
+      MenuRect2.right = MenuRect.right - 3;
+
+      FillRect(hDc, &MenuRect2, (HBRUSH) (COLOR_3DSHADOW + 1));
+
+      // Draw "minus" inside
+      MenuRect2.top -= 1;
+      MenuRect2.left -= 1;
+      MenuRect2.bottom -= 1;
+      MenuRect2.right -= 1;
+
+      FillRect(hDc, &MenuRect2, (HBRUSH) (COLOR_3DHILIGHT + 1));
+
+      // Draw "minus" border
+      FrameRect(hDc, &MenuRect2, (HBRUSH) (COLOR_BTNTEXT + 1));
+
+      // Adjust the rectangle
       Rect.left += Rect.bottom - Rect.top;
+   }
 
    if((uFlags & DC_TEXT))
    {
