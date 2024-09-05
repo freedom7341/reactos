@@ -2247,7 +2247,8 @@ BOOL UserDrawCaption(
 
       MenuRect = Rect;
 
-      MenuRect.right = MenuRect.left + UserGetSystemMetrics(SM_CYMENUSIZE);
+      MenuRect.bottom = MenuRect.top + UserGetSystemMetrics(SM_CYMENUSIZE);
+      MenuRect.right = MenuRect.left + UserGetSystemMetrics(SM_CXMENUSIZE);
 
       // Draw background
       FillRect(hDc, &MenuRect, (HBRUSH) (COLOR_3DFACE + 1));
@@ -2256,7 +2257,7 @@ BOOL UserDrawCaption(
       FrameRect(hDc, &MenuRect, (HBRUSH) (COLOR_WINDOWFRAME + 1));
 
       // Draw shadow
-      MenuRect2.top = MenuRect.top + (UserGetSystemMetrics(SM_CXMENUSIZE) / 2);
+      MenuRect2.top = MenuRect.top + (UserGetSystemMetrics(SM_CYMENUSIZE) / 2);
       MenuRect2.left = MenuRect.left + 3; // adjust for mdi windows later (6)
       MenuRect2.bottom = MenuRect2.top + 3;
       MenuRect2.right = MenuRect.right - 3;
