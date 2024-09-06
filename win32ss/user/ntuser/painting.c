@@ -2276,6 +2276,7 @@ BOOL UserDrawCaption(
    /* Draw icon */
    if (HasIcon)
    {
+#if 0
       PCURICON_OBJECT pIcon = NULL;
 
       if (hIcon)
@@ -2303,6 +2304,8 @@ BOOL UserDrawCaption(
       {
           HasIcon = FALSE;
       }
+#endif
+      UserDrawSysMenuButton(pWnd, hDc, &Rect, FALSE);
    }
 
    if (HasIcon)
