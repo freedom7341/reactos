@@ -768,8 +768,8 @@ UserDrawSysMenuButton(PWND pWnd, HDC hDC, LPRECT Rect, BOOL Down)
 
    if ((WindowIcon = NC_IconForWindow(pWnd)))
    {
-      LONG cx = UserGetSystemMetrics(SM_CXSMICON);
-      LONG cy = UserGetSystemMetrics(SM_CYSMICON);
+      LONG cx = UserGetSystemMetrics(SM_CXSIZE) - 2;
+      LONG cy = cx;
       LONG x = Rect->left - cx/2 + 1 + (Rect->bottom - Rect->top)/2; // this is really what Window does
       LONG y = (Rect->top + Rect->bottom - cy)/2; // center
 
