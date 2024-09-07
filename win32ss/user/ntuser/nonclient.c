@@ -2073,7 +2073,6 @@ GetNCHitEx(PWND pWnd, POINT pt)
                 PCURICON_OBJECT pIcon = NULL;
 
                 /* Check system menu */
-                if ((Style & WS_SYSMENU) && !(ExStyle & WS_EX_TOOLWINDOW) && NC_IconForWindow(pWnd))
                 if ((Style & WS_SYSMENU) && !(ExStyle & WS_EX_TOOLWINDOW) && (pIcon = NC_IconForWindow(pWnd)))
                 {
                     rcWindow.right -= UserGetSystemMetrics(SM_CYCAPTION) - 1;
