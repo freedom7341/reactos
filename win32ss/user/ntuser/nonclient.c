@@ -772,10 +772,24 @@ UserDrawSysMenuButton(PWND pWnd, HDC hDC, LPRECT Rect, BOOL Down)
 
    if ((WindowIcon = NC_IconForWindow(pWnd)))
    {
+      RECT TempRect = *Rect;
       LONG cx = UserGetSystemMetrics(SM_CXSIZE) - 2;
       LONG cy = cx;
-      LONG x = Rect->left - cx/2 + 1 + (Rect->bottom - Rect->top)/2; // this is really what Window does
-      LONG y = (Rect->top + Rect->bottom - cy)/2; // center
+      LONG x, y;
+
+      if (pWnd->ExStyle & WS_EX_TOOLWINDOW)
+      {
+         TempRect.right = TempRect.left + UserGetSystemMetrics(SM_CYSMCAPTION);
+         TempRect.bottom = TempRect.top + UserGetSystemMetrics(SM_CYSMCAPTION);
+      }
+      else
+      {
+         TempRect.right = TempRect.left + UserGetSystemMetrics(SM_CYCAPTION);
+         TempRect.bottom = TempRect.top + UserGetSystemMetrics(SM_CYCAPTION);
+      }
+
+      x = TempRect.left - cx/2 + 1 + (TempRect.bottom - TempRect.top)/2; // this is really what Window does
+      y = (TempRect.top + TempRect.bottom - cy)/2; // center
 
       Ret = UserDrawIconEx(hDC, x, y, WindowIcon, cx, cy, 0, NULL, DI_NORMAL);
 
