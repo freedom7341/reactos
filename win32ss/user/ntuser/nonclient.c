@@ -732,8 +732,8 @@ DefWndDoSizeMove(PWND pwnd, WORD wParam)
 
 PCURICON_OBJECT FASTCALL NC_IconForWindow( PWND pWnd )
 {
-    PCURICON_OBJECT pIcon = NULL;
-    HICON hIcon;
+   PCURICON_OBJECT pIcon = NULL;
+   HICON hIcon;
 
    hIcon = UserGetProp(pWnd, gpsi->atomIconSmProp, TRUE);
    if (!hIcon) hIcon = UserGetProp(pWnd, gpsi->atomIconProp, TRUE);
@@ -757,6 +757,10 @@ PCURICON_OBJECT FASTCALL NC_IconForWindow( PWND pWnd )
                                                    hIcon,
                                                    TYPE_CURSOR);
    }
+
+   // All the code that calls this says the object should be referenced so let's do it!!!
+   UserReferenceObject(pIcon);
+
    return pIcon;
 }
 
@@ -772,8 +776,6 @@ UserDrawSysMenuButton(PWND pWnd, HDC hDC, LPRECT Rect, BOOL Down)
       LONG cy = cx;
       LONG x = Rect->left - cx/2 + 1 + (Rect->bottom - Rect->top)/2; // this is really what Window does
       LONG y = (Rect->top + Rect->bottom - cy)/2; // center
-
-      UserReferenceObject(WindowIcon);
 
       Ret = UserDrawIconEx(hDC, x, y, WindowIcon, cx, cy, 0, NULL, DI_NORMAL);
 
@@ -2068,10 +2070,14 @@ GetNCHitEx(PWND pWnd, POINT pt)
             BOOL min_or_max_box = (Style & WS_SYSMENU) && (Style & (WS_MINIMIZEBOX|WS_MAXIMIZEBOX));
             if (ExStyle & WS_EX_LAYOUTRTL)
             {
+                PCURICON_OBJECT pIcon = NULL;
+
                 /* Check system menu */
                 if ((Style & WS_SYSMENU) && !(ExStyle & WS_EX_TOOLWINDOW) && NC_IconForWindow(pWnd))
+                if ((Style & WS_SYSMENU) && !(ExStyle & WS_EX_TOOLWINDOW) && (pIcon = NC_IconForWindow(pWnd)))
                 {
                     rcWindow.right -= UserGetSystemMetrics(SM_CYCAPTION) - 1;
+                    if (pIcon) UserDereferenceObject(pIcon);
                     if (pt.x > rcWindow.right) return HTSYSMENU;
                 }
 

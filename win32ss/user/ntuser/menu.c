@@ -1700,8 +1700,6 @@ static void FASTCALL MENU_DrawBitmapItem(HDC hdc, PITEM lpitem, const RECT *rect
                 if (WndOwner)
                 {
                     pIcon = NC_IconForWindow(WndOwner);
-                    // FIXME: NC_IconForWindow should reference it for us */
-                    if (pIcon) UserReferenceObject(pIcon);
                 }
                 ERR("Draw ICON\n");
                 if (pIcon)

@@ -2286,9 +2286,6 @@ BOOL UserDrawCaption(
       else if (pWnd)
       {
           pIcon = NC_IconForWindow(pWnd);
-          // FIXME: NC_IconForWindow should reference it for us */
-          if (pIcon)
-              UserReferenceObject(pIcon);
       }
 
       if (pIcon)
